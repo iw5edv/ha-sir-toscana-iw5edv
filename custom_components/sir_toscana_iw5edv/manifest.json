@@ -1,0 +1,15 @@
+{
+  "domain": "sir_toscana_iw5edv",
+  "name": "SIR CFR Toscana (Fork by IW5EDV)",
+  "codeowners": [
+    "@iw5edv"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/iw5edv/ha-sir-toscana-iw5edv",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/iw5edv/ha-sir-toscana-iw5edv/issues",
+  "requirements": [],
+  "version": "0.1"
+}

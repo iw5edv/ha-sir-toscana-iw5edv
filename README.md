@@ -1,8 +1,54 @@
-# SIR CFR Toscana per Home Assistant
+# SIR CFR Toscana per Home Assistant — Fork by IW5EDV
 
-[![GitHub release](https://img.shields.io/github/v/release/m0m4x/ha-sir-toscana?display_name=tag)](https://github.com/m0m4x/ha-sir-toscana/releases)
-[![HACS validation](https://github.com/m0m4x/ha-sir-toscana/actions/workflows/validate.yml/badge.svg)](https://github.com/m0m4x/ha-sir-toscana/actions/workflows/validate.yml)
-[![hassfest](https://github.com/m0m4x/ha-sir-toscana/actions/workflows/hassfest.yml/badge.svg)](https://github.com/m0m4x/ha-sir-toscana/actions/workflows/hassfest.yml)
+[![GitHub release](https://img.shields.io/github/v/release/iw5edv/ha-sir-toscana-iw5edv?display_name=tag)](https://github.com/iw5edv/ha-sir-toscana-iw5edv/releases)
+[![HACS validation](https://github.com/iw5edv/ha-sir-toscana-iw5edv/actions/workflows/validate.yml/badge.svg)](https://github.com/iw5edv/ha-sir-toscana-iw5edv/actions/workflows/validate.yml)
+[![hassfest](https://github.com/iw5edv/ha-sir-toscana-iw5edv/actions/workflows/hassfest.yml/badge.svg)](https://github.com/iw5edv/ha-sir-toscana-iw5edv/actions/workflows/hassfest.yml)
+
+> [!IMPORTANT]
+> **Questo repository è un fork** dell'integrazione **[SIR CFR Toscana](https://github.com/m0m4x/ha-sir-toscana) di [m0m4x](https://github.com/m0m4x)**, basato sulla **versione 0.2.2** dell'originale.
+>
+> Versione del fork: **0.1** — manutenuto da **IW5EDV**. Distribuito con la stessa licenza MIT dell'originale; tutto il merito del lavoro di base va all'autore originale.
+
+## Modifiche rispetto all'originale
+
+### 1. Elenco delle stazioni più affidabile
+
+Nell'originale l'elenco delle stazioni del menu veniva ricavato leggendo sette pagine HTML del portale SIR (`stazioni.php?type=…`, una per tipologia di sensore) ed estraendo i dati dal JavaScript contenuto nelle pagine. Se una di queste pagine non rispondeva, l'errore veniva ignorato in silenzio e **spariscono dal menu tutte le stazioni presenti solo in quella tabella**. Ad esempio **Montecatini Terme (`TOS01001601`)**, che compare solo nella tabella dei pluviometri, poteva non essere selezionabile. Inoltre la tabella `anemo` del portale risponde attualmente con errore HTTP 500.
+
+Nel fork:
+
+- l'elenco viene letto dall'endpoint JSON usato dalle mappe del portale SIR (`actions.php?action=list&type_gauge=…`), unendo la lista completa e quelle per ogni tipologia;
+- se la lista JSON di una tipologia non è disponibile, viene letta la tabella HTML corrispondente, come nell'originale;
+- ogni fonte non raggiungibile viene segnalata come **warning nel log** di Home Assistant invece di essere ignorata;
+- i nomi delle stazioni non riportano più i suffissi `(RADIO)` / `(GPRS)`.
+
+### 2. Comune e provincia nel menu
+
+Diverse stazioni hanno lo stesso nome (Sambuca, Roccastrada, Buonconvento, Dicomano, Villafranca…). Ogni voce del menu riporta ora comune (se diverso dal nome) e provincia:
+
+```text
+Montecatini Terme (PT) — TOS01001601
+Sambuca (Barberino Tavarnelle, FI) — TOS03004911
+Sambuca (San Casciano in Val di Pesa, FI) — TOS11000057
+```
+
+### 3. Installabile insieme all'originale
+
+Il fork usa un domain e una cartella propri, quindi **può essere installato accanto all'integrazione originale senza conflitti**:
+
+| | Originale | Fork |
+|---|---|---|
+| Nome | SIR CFR Toscana | SIR CFR Toscana (Fork by IW5EDV) |
+| Domain | `sir_toscana` | `sir_toscana_iw5edv` |
+| Cartella | `custom_components/sir_toscana` | `custom_components/sir_toscana_iw5edv` |
+
+Config entry, dispositivi ed entità delle due integrazioni restano separati. Una stessa stazione può essere configurata in entrambe: Home Assistant aggiunge automaticamente un suffisso (es. `_2`) agli `entity_id` del secondo dispositivo.
+
+> Le stazioni configurate con l'integrazione originale non vengono migrate: per usarle con il fork vanno aggiunte di nuovo da **Aggiungi integrazione → SIR CFR Toscana (Fork by IW5EDV)**.
+
+Il dettaglio delle modifiche è nel [CHANGELOG](CHANGELOG.md).
+
+---
 
 Custom integration per Home Assistant per acquisire i **dati in tempo reale della rete meteo-idrologica regionale** pubblicati dal **Servizio Idrologico Regionale (SIR) della Regione Toscana**.
 
@@ -14,13 +60,15 @@ L'integrazione acquisisce automaticamente l'elenco delle stazioni disponibili da
 
 Premi il pulsante seguente per aprire direttamente questo repository in HACS:
 
-[![Apri SIR CFR Toscana in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=m0m4x&repository=ha-sir-toscana&category=integration)
+[![Apri SIR CFR Toscana (Fork by IW5EDV) in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=iw5edv&repository=ha-sir-toscana-iw5edv&category=integration)
+
+In alternativa: **HACS → ⋮ → Custom repositories**, URL `https://github.com/iw5edv/ha-sir-toscana-iw5edv`, tipo **Integration**.
 
 Dopo aver scaricato l'integrazione da HACS e riavviato Home Assistant, premi:
 
-[![Aggiungi SIR CFR Toscana a Home Assistant](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=sir_toscana)
+[![Aggiungi SIR CFR Toscana (Fork by IW5EDV) a Home Assistant](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=sir_toscana_iw5edv)
 
-Il primo pulsante aggiunge/apre il repository in HACS. Il secondo avvia il Config Flow di **SIR CFR Toscana** dopo che la custom integration è stata installata.
+Il primo pulsante aggiunge/apre il repository in HACS. Il secondo avvia il Config Flow di **SIR CFR Toscana (Fork by IW5EDV)** dopo che la custom integration è stata installata.
 
 ## Funzionalità
 
@@ -43,7 +91,7 @@ Il primo pulsante aggiunge/apre il repository in HACS. Il secondo avvia il Confi
 Nel Config Flow è possibile selezionare:
 
 ```text
-Prato Università — TOS01001205
+Prato Università (Prato, PO) — TOS01001205
 ```
 
 L'integrazione acquisisce i dati da:
@@ -91,13 +139,14 @@ I campi tecnici `id` e `speed_label` non vengono creati come entità.
 ## Configurazione
 
 1. Aprire **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**.
-2. Cercare **SIR CFR Toscana**.
+2. Cercare **SIR CFR Toscana (Fork by IW5EDV)**.
 3. Selezionare la stazione desiderata dall'elenco.
 
-Ogni voce mostra il nome pubblicato dal SIR e il relativo codice identificativo:
+Ogni voce mostra il nome pubblicato dal SIR, il comune (se diverso dal nome), la provincia e il relativo codice identificativo:
 
 ```text
-Prato Università — TOS01001205
+Prato Università (Prato, PO) — TOS01001205
+Montecatini Terme (PT) — TOS01001601
 ```
 
 ![Selezione della stazione SIR CFR Toscana](docs/images/config-flow-station.png)
@@ -158,7 +207,13 @@ Endpoint della singola stazione:
 https://www.sir.toscana.it/monitoraggio/actions.php?action=station&id=CODICE_STAZIONE
 ```
 
-La ricerca delle stazioni utilizza le tabelle pubbliche verificate per anemometria, pluviometria, termometria, igrometria, idrometria e nivometria.
+Elenco delle stazioni (JSON, usato dalle mappe del portale):
+
+```text
+https://www.sir.toscana.it/monitoraggio/actions.php?action=list&type_gauge=TIPOLOGIA
+```
+
+La ricerca delle stazioni unisce la lista completa (`type_gauge` vuoto) e le liste per anemometria, radiometria, pluviometria, termometria, igrometria, idrometria e nivometria. Se la lista JSON di una tipologia non è disponibile, viene letta la corrispondente tabella `stazioni.php`. Le fonti non raggiungibili sono segnalate come warning nel log di Home Assistant.
 
 ## Dati in tempo reale e validazione
 
@@ -176,7 +231,7 @@ Per ogni sezione del JSON della stazione vengono create entità per tutti i valo
 
 I campi noti ricevono nomi leggibili, unità, device class e icone Home Assistant appropriate. I campi non ancora documentati vengono comunque acquisiti con un nome derivato dalla sezione e dal campo sorgente.
 
-> La versione 0.1.1 considera come dati della stazione il payload JSON restituito da `actions.php?action=station`. Le tabelle riepilogative del portale possono mostrare elaborazioni aggiuntive, come massimi giornalieri o raffiche, che non fanno parte di quel payload e non vengono ancora importate come sensori.
+> L'integrazione considera come dati della stazione il payload JSON restituito da `actions.php?action=station`. Le tabelle riepilogative del portale possono mostrare elaborazioni aggiuntive, come massimi giornalieri o raffiche, che non fanno parte di quel payload e non vengono ancora importate come sensori.
 
 ## Installazione manuale
 
@@ -184,18 +239,18 @@ I campi noti ricevono nomi leggibili, unità, device class e icone Home Assistan
 2. Copiare:
 
    ```text
-   custom_components/sir_toscana
+   custom_components/sir_toscana_iw5edv
    ```
 
    dentro:
 
    ```text
-   /config/custom_components/sir_toscana
+   /config/custom_components/sir_toscana_iw5edv
    ```
 
 3. Riavviare Home Assistant.
 4. Aprire **Impostazioni → Dispositivi e servizi → Aggiungi integrazione**.
-5. Cercare **SIR CFR Toscana**.
+5. Cercare **SIR CFR Toscana (Fork by IW5EDV)**.
 6. Selezionare la stazione desiderata.
 
 ## Limitazioni

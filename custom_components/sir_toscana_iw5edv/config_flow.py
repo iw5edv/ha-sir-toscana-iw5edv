@@ -25,6 +25,20 @@ from .const import (
 )
 
 
+def _station_label(station: SirStation) -> str:
+    """Return the dropdown label, with the location to tell namesakes apart."""
+    municipality = (
+        station.municipality
+        if station.municipality.casefold() != station.name.casefold()
+        else ""
+    )
+    location = ", ".join(part for part in (municipality, station.province) if part)
+
+    if location:
+        return f"{station.name} ({location}) — {station.station_id}"
+    return f"{station.name} — {station.station_id}"
+
+
 class SirToscanaConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for SIR Toscana."""
 
@@ -84,7 +98,7 @@ class SirToscanaConfigFlow(ConfigFlow, domain=DOMAIN):
 
         station_options: list[SelectOptionDict] = [
             SelectOptionDict(
-                label=f"{station.name} — {station.station_id}",
+                label=_station_label(station),
                 value=station.station_id,
             )
             for station in stations

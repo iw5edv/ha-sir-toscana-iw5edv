@@ -1,29 +1,20 @@
-# Pubblicazione GitHub e HACS
+# Pubblicazione GitHub e HACS — Fork by IW5EDV
 
-## Repository GitHub
+Questa cartella è già un repository git: contiene la storia dell'originale [m0m4x/ha-sir-toscana](https://github.com/m0m4x/ha-sir-toscana) fino alla versione `v0.2.2` e, sopra, il commit con le modifiche del fork (versione `0.1`).
 
-Nome:
+## Dati del repository
 
-```text
-ha-sir-toscana
-```
-
-Owner:
-
-```text
-m0m4x
-```
+| Campo | Valore |
+|---|---|
+| Owner | `iw5edv` |
+| Nome | `ha-sir-toscana-iw5edv` |
+| Fork di | `m0m4x/ha-sir-toscana` (v0.2.2) |
+| Website | `https://www.sir.toscana.it/` |
 
 Descrizione consigliata:
 
 ```text
-Integrazione Home Assistant per i dati in tempo reale della rete meteo-idrologica regionale del SIR Toscana.
-```
-
-Website:
-
-```text
-https://www.sir.toscana.it/
+Fork by IW5EDV di SIR CFR Toscana (m0m4x/ha-sir-toscana v0.2.2): integrazione Home Assistant per i dati in tempo reale della rete meteo-idrologica del SIR Toscana.
 ```
 
 Topics consigliati:
@@ -40,66 +31,62 @@ meteorology
 hydrology
 ```
 
-Abilitare **Issues** nel repository.
+## 1. Creare il fork su GitHub
 
-Il file `hacs.json` è volutamente minimale e contiene `name` e `country: IT`, sufficienti per questo repository territoriale.
+1. Accedere a GitHub come `iw5edv` e aprire <https://github.com/m0m4x/ha-sir-toscana>.
+2. Premere **Fork**.
+3. In **Repository name** scrivere `ha-sir-toscana-iw5edv`.
+4. Lasciare selezionato **Copy the main branch only** e premere **Create fork**.
+5. Nelle **Settings** del fork abilitare **Issues** (nei fork sono disattivate per impostazione predefinita) e impostare Description, Website e Topics.
 
-## Primo push
+## 2. Caricare le modifiche
 
-Creare su GitHub un repository pubblico vuoto `m0m4x/ha-sir-toscana`, senza inizializzarlo con README, .gitignore o licenza, quindi dalla cartella locale:
+Dalla cartella del fork (`ha-sir-toscana-iw5edv`), in un terminale:
 
 ```bash
-git init
-git add .
-git commit -m "Initial release of SIR Toscana integration"
-git branch -M main
-git remote add origin https://github.com/m0m4x/ha-sir-toscana.git
+git remote add origin https://github.com/iw5edv/ha-sir-toscana-iw5edv.git
 git push -u origin main
 ```
 
-## Controlli GitHub
+Il push è un normale avanzamento del ramo `main` del fork, perché il commit del fork si trova sopra la storia dell'originale.
 
-Aprire la scheda **Actions** e verificare che risultino verdi:
+Per ricevere in futuro gli aggiornamenti dell'originale è già configurato il remote `upstream`:
+
+```bash
+git fetch upstream
+git merge upstream/main
+```
+
+## 3. Controlli GitHub
+
+Aprire la scheda **Actions**, abilitare i workflow (nei fork sono disattivati finché non si conferma) e verificare che risultino verdi:
 
 - HACS validation
 - Validate with hassfest
 
-La validazione HACS controlla anche requisiti del repository che esistono solo dopo la pubblicazione, come Description, Topics e Issues.
+La validazione HACS controlla anche Description, Topics e Issues del repository.
 
-## Prima installazione HACS
+## 4. Prima release
+
+Creare su GitHub una **Release**, non soltanto un tag:
+
+```text
+Tag: v0.1
+Title: SIR CFR Toscana (Fork by IW5EDV) v0.1
+```
+
+Usare come note il contenuto della sezione `0.1` di `CHANGELOG.md`.
+
+HACS usa le GitHub Releases per mostrare le versioni disponibili. Il tag deve corrispondere a `version` in `custom_components/sir_toscana_iw5edv/manifest.json`.
+
+## 5. Installazione con HACS
 
 Usare:
 
 ```text
-https://my.home-assistant.io/redirect/hacs_repository/?owner=m0m4x&repository=ha-sir-toscana&category=integration
+https://my.home-assistant.io/redirect/hacs_repository/?owner=iw5edv&repository=ha-sir-toscana-iw5edv&category=integration
 ```
 
-oppure aggiungere manualmente il repository a HACS come **Custom repository → Integration**.
+oppure aggiungere il repository a HACS come **Custom repository → Integration**.
 
-Dopo l'installazione riavviare Home Assistant e configurare la prima stazione, ad esempio `La Ferruccia`.
-
-## Prima release
-
-Dopo che le Actions sono verdi e il test reale su Home Assistant ha avuto esito positivo, creare su GitHub una **Release**, non soltanto un tag:
-
-```text
-Tag: v0.1.1
-Title: SIR Toscana v0.1.1
-```
-
-Usare come note il contenuto della sezione `0.1.1` di `CHANGELOG.md`.
-
-HACS usa le vere GitHub Releases per mostrare correttamente le versioni disponibili.
-
-## Catalogo HACS predefinito
-
-L'integrazione può essere usata immediatamente come custom repository. Per chiederne successivamente l'inclusione nel catalogo HACS predefinito:
-
-1. repository GitHub pubblico;
-2. HACS Action verde senza `ignore`;
-3. Hassfest verde;
-4. almeno una GitHub Release;
-5. Description, Topics e Issues configurati;
-6. `country: IT` in `hacs.json`;
-7. brand asset presente;
-8. aprire la PR prevista dal progetto `hacs/default` per la categoria `integration`.
+Dopo l'installazione riavviare Home Assistant e aggiungere **SIR CFR Toscana (Fork by IW5EDV)**. Il fork può restare installato accanto all'integrazione originale.

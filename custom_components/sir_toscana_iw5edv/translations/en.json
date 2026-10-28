@@ -1,15 +1,15 @@
 {
-  "title": "SIR Toscana",
+  "title": "SIR CFR Toscana (Fork by IW5EDV)",
   "config": {
     "step": {
       "user": {
         "title": "Add a SIR Toscana station",
-        "description": "Select a station from those available in the SIR Toscana monitoring tables.",
+        "description": "Select a station from those published by the SIR Toscana website.",
         "data": {
           "station_id": "Station"
         },
         "data_description": {
-          "station_id": "The list is retrieved automatically from the SIR Toscana website."
+          "station_id": "The list is retrieved automatically from the SIR Toscana website. Each entry shows municipality and province to tell apart stations with the same name."
         }
       },
       "data_types": {

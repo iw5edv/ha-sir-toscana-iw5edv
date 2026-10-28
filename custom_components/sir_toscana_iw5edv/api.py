@@ -3,21 +3,32 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import html
 import json
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any
 
 from aiohttp import ClientError, ClientSession
 
-from .const import REQUEST_TIMEOUT, STATIONS_URL, STATION_TYPES, STATION_URL
+from .const import (
+    REQUEST_TIMEOUT,
+    STATION_LIST_URL,
+    STATIONS_URL,
+    STATION_TYPES,
+    STATION_URL,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 _ARRAY_RE = re.compile(
     r'new\s+Array\(\s*"(?P<id>TOS\d+)"\s*,\s*"(?P<field1>(?:\\.|[^"])*)"'
     r'(?:\s*,\s*"(?P<field2>(?:\\.|[^"])*)")?',
     re.IGNORECASE,
 )
+_STATION_ID_RE = re.compile(r"TOS\d+", re.IGNORECASE)
 _TRANSPORT_SUFFIX_RE = re.compile(r"\s+\((?:RADIO|GPRS)\)\s*$", re.IGNORECASE)
 
 
@@ -47,6 +58,15 @@ class SirStation:
 
     station_id: str
     name: str
+    municipality: str = ""
+    province: str = ""
+
+
+def _clean_text(value: Any) -> str:
+    """Unescape HTML entities and collapse whitespace."""
+    if not isinstance(value, str):
+        return ""
+    return " ".join(html.unescape(value).split())
 
 
 def parse_station_list(
@@ -71,7 +91,41 @@ def parse_station_list(
         stations.append(
             SirStation(
                 station_id=match.group("id"),
-                name=html.unescape(name).strip(),
+                name=_clean_text(name),
+            )
+        )
+
+    return stations
+
+
+def parse_station_geojson(text: str) -> list[SirStation]:
+    """Extract stations from the SIR station list JSON endpoint."""
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as err:
+        raise SirToscanaInvalidResponseError from err
+
+    features = data.get("features") if isinstance(data, dict) else None
+    if not isinstance(features, list):
+        raise SirToscanaInvalidResponseError
+
+    stations: list[SirStation] = []
+
+    for feature in features:
+        if not isinstance(feature, dict):
+            continue
+
+        station_id = _clean_text(feature.get("IDStazione")).upper()
+        name = _clean_text(feature.get("Nome"))
+        if not _STATION_ID_RE.fullmatch(station_id) or not name:
+            continue
+
+        stations.append(
+            SirStation(
+                station_id=station_id,
+                name=name,
+                municipality=_clean_text(feature.get("Comune")),
+                province=_clean_text(feature.get("Provincia")).upper(),
             )
         )
 
@@ -85,6 +139,20 @@ def canonical_station_name(value: str) -> str:
     return normalized.strip()
 
 
+def _merge_stations(current: SirStation | None, new: SirStation) -> SirStation:
+    """Combine two records of the same station, keeping the best details."""
+    if current is None:
+        return new
+
+    return dataclasses.replace(
+        current,
+        # The shortest published name is the one without RADIO/GPRS suffixes.
+        name=new.name if len(new.name) < len(current.name) else current.name,
+        municipality=current.municipality or new.municipality,
+        province=current.province or new.province,
+    )
+
+
 class SirToscanaApi:
     """Async client for the public SIR Toscana monitoring endpoints."""
 
@@ -94,15 +162,7 @@ class SirToscanaApi:
 
     async def async_get_station_data(self, station_id: str) -> dict[str, Any]:
         """Return the complete JSON payload for one station."""
-        url = STATION_URL.format(station_id=station_id)
-
-        try:
-            async with asyncio.timeout(REQUEST_TIMEOUT):
-                response = await self._session.get(url)
-                response.raise_for_status()
-                text = await response.text()
-        except (TimeoutError, ClientError) as err:
-            raise SirToscanaConnectionError from err
+        text = await self._async_get_text(STATION_URL.format(station_id=station_id))
 
         try:
             data = json.loads(text)
@@ -115,30 +175,44 @@ class SirToscanaApi:
         return data
 
     async def async_get_stations(self) -> list[SirStation]:
-        """Discover station names and IDs from public monitoring tables."""
+        """Discover station names and IDs from the public SIR station lists."""
         stations: dict[str, SirStation] = {}
 
+        # The complete list and the per-type lists differ slightly, so both
+        # are combined. An empty type returns every station.
+        sources = ("", *STATION_TYPES)
         results = await asyncio.gather(
-            *(
-                self._async_get_stations_for_type(station_type)
-                for station_type in STATION_TYPES
-            ),
+            *(self._async_get_stations_for_type(source) for source in sources),
             return_exceptions=True,
         )
 
-        for result in results:
-            if isinstance(result, Exception):
+        for source, result in zip(sources, results, strict=True):
+            if isinstance(result, BaseException):
+                _LOGGER.warning(
+                    "Unable to load the SIR station list for type '%s': %r",
+                    source or "all",
+                    result,
+                )
                 continue
 
             for station in result:
-                current = stations.get(station.station_id)
-                if current is None or len(station.name) < len(current.name):
-                    stations[station.station_id] = station
+                stations[station.station_id] = _merge_stations(
+                    stations.get(station.station_id), station
+                )
 
         if not stations:
             raise SirToscanaConnectionError
 
-        return sorted(stations.values(), key=lambda station: station.name.casefold())
+        _LOGGER.debug("Loaded %d SIR stations", len(stations))
+
+        return sorted(
+            stations.values(),
+            key=lambda station: (
+                station.name.casefold(),
+                station.municipality.casefold(),
+                station.station_id,
+            ),
+        )
 
     async def async_find_station(self, station_name: str) -> SirStation:
         """Find one station by its published name, case-insensitively."""
@@ -174,15 +248,40 @@ class SirToscanaApi:
         self,
         station_type: str,
     ) -> list[SirStation]:
-        """Read one SIR monitoring table."""
-        url = STATIONS_URL.format(station_type=station_type)
+        """Read one SIR station list, falling back to the monitoring table."""
+        try:
+            text = await self._async_get_text(
+                STATION_LIST_URL.format(station_type=station_type)
+            )
+            stations = parse_station_geojson(text)
+            if not stations:
+                raise SirToscanaInvalidResponseError
+        except SirToscanaApiError as err:
+            if not station_type:
+                raise
 
+            _LOGGER.warning(
+                "SIR station list for type '%s' unavailable (%r), "
+                "falling back to the monitoring table",
+                station_type,
+                err,
+            )
+        else:
+            return stations
+
+        text = await self._async_get_text(
+            STATIONS_URL.format(station_type=station_type)
+        )
+        return parse_station_list(text, station_type)
+
+    async def _async_get_text(self, url: str) -> str:
+        """Return the body of a SIR page."""
         try:
             async with asyncio.timeout(REQUEST_TIMEOUT):
                 response = await self._session.get(url)
                 response.raise_for_status()
-                text = await response.text()
+                return await response.text()
         except (TimeoutError, ClientError) as err:
-            raise SirToscanaConnectionError from err
-
-        return parse_station_list(text, station_type)
+            raise SirToscanaConnectionError(f"{url}: {err!r}") from err
+        except UnicodeDecodeError as err:
+            raise SirToscanaInvalidResponseError(url) from err

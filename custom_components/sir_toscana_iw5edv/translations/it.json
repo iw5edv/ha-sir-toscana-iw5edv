@@ -1,15 +1,15 @@
 {
-  "title": "SIR Toscana",
+  "title": "SIR CFR Toscana (Fork by IW5EDV)",
   "config": {
     "step": {
       "user": {
         "title": "Aggiungi una stazione SIR Toscana",
-        "description": "Seleziona una stazione tra quelle disponibili nelle tabelle di monitoraggio del SIR Toscana.",
+        "description": "Seleziona una stazione tra quelle pubblicate dal portale SIR Toscana.",
         "data": {
           "station_id": "Stazione"
         },
         "data_description": {
-          "station_id": "L'elenco viene acquisito automaticamente dal portale SIR Toscana."
+          "station_id": "L'elenco viene acquisito automaticamente dal portale SIR Toscana. Ogni voce riporta comune e provincia per distinguere le stazioni con lo stesso nome."
         }
       },
       "data_types": {

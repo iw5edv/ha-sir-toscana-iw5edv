@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-DOMAIN = "sir_toscana"
+DOMAIN = "sir_toscana_iw5edv"
 
 CONF_STATION_ID = "station_id"
 CONF_STATION_NAME = "station_name"
@@ -11,10 +11,13 @@ CONF_DATA_TYPES = "data_types"
 BASE_URL = "https://www.sir.toscana.it/monitoraggio"
 STATION_URL = BASE_URL + "/actions.php?action=station&id={station_id}"
 STATIONS_URL = BASE_URL + "/stazioni.php?type={station_type}"
+# JSON station list used by the SIR portal maps; an empty type lists all.
+STATION_LIST_URL = BASE_URL + "/actions.php?action=list&type_gauge={station_type}"
 
 # Public real-time monitoring tables currently verified on the SIR portal.
 # Mareographic stations are also present in the hydrometric table.
-# The same SIR tables are used to discover stations for the config flow.
+# The JSON station lists (with the monitoring tables as fallback) are used
+# to discover stations for the config flow.
 SUPPORTED_DATA_TYPES = (
     "anemo",
     "radio",
